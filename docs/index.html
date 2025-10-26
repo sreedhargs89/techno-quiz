@@ -2,14 +2,35 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=Kubernetes-Byte.html">
-    <title>Redirecting...</title>
-    <script>
-      // Fallback JS redirect in case meta-refresh is blocked
-      window.location.href = "Kubernetes-Byte.html";
-    </script>
+    <title>Quiz Index</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 2em; }
+      h1 { color: #245; }
+      ul { line-height: 2; }
+    </style>
   </head>
   <body>
-    <p>If you are not redirected automatically, <a href="Kubernetes-Byte.html">click here</a>.</p>
+    <h1>Quiz Index</h1>
+    <ul id="file-list">
+      <!-- Links will be injected here -->
+    </ul>
+    <script>
+      // List your quiz HTML files here
+      const files = [
+        "Kubernetes-Byte.html",
+        "Docker-Byte.html",
+        "Linux-Byte.html"
+        // Add more quiz files here
+      ];
+      const ul = document.getElementById('file-list');
+      files.forEach(file => {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = file;
+        a.textContent = file.replace('.html', '').replace(/-/g, ' ');
+        li.appendChild(a);
+        ul.appendChild(li);
+      });
+    </script>
   </body>
 </html>
