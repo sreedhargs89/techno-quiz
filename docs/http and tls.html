@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Report: Understanding HTTPS & TLS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-dark: #7d0100;
+            --primary-light: #fff8f6;
+            --secondary-dark: #513430;
+            --secondary-light: #ffedea;
+            --background: #ffdad4;
+            --error: #de3730;
+            --neutral-dark: #413a38;
+            --neutral-light: #fff8f6;
+            --success: #16a34a; /* A suitable green for success states */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background);
+            color: var(--secondary-dark);
+        }
+        .prose-custom h2 { color: var(--primary-dark); margin-top: 2em; margin-bottom: 1em; font-weight: 700; border-bottom: 2px solid var(--secondary-light); padding-bottom: 0.5rem; }
+        .prose-custom h3 { color: var(--primary-dark); margin-top: 1.5em; margin-bottom: 0.75em; font-weight: 600; }
+        .prose-custom h4 { color: var(--secondary-dark); margin-top: 1.25em; margin-bottom: 0.5em; font-weight: 600; }
+        .prose-custom p { line-height: 1.75; }
+        .prose-custom ul { list-style-position: outside; padding-left: 1.5rem; }
+        .prose-custom li { margin-bottom: 0.5rem; padding-left: 0.5rem; }
+        .prose-custom li::marker { color: var(--primary-dark); }
+        .prose-custom strong { color: var(--primary-dark); font-weight: 600; }
+        .prose-custom code { background-color: var(--secondary-light); color: var(--primary-dark); padding: 0.2em 0.4em; margin: 0; font-size: 85%; border-radius: 3px; }
+        .tab-active {
+            background-color: var(--primary-dark);
+            color: var(--primary-light);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .tab-inactive {
+            background-color: var(--primary-light);
+            color: var(--secondary-dark);
+        }
+        .quiz-option {
+            border: 2px solid var(--secondary-light);
+            transition: all 0.2s ease-in-out;
+        }
+        .quiz-option:hover:not(.disabled) {
+            border-color: var(--primary-dark);
+            background-color: var(--secondary-light);
+            transform: translateY(-2px);
+        }
+        .quiz-option.selected {
+            transform: translateY(-2px);
+        }
+        .quiz-option.correct {
+            background-color: #dcfce7; /* green-100 */
+            border-color: var(--success);
+            color: #14532d; /* green-900 */
+        }
+        .quiz-option.incorrect {
+            background-color: #fee2e2; /* red-100 */
+            border-color: var(--error);
+            color: #7f1d1d; /* red-900 */
+        }
+        .quiz-option.disabled {
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div id="app" class="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-[var(--primary-dark)]">Understanding HTTPS & TLS</h1>
+            <p class="mt-2 text-lg text-[var(--secondary-dark)]">An Interactive Guide to Secure Web Communication</p>
+        </header>
+
+        <section class="mb-8">
+            <a href="https://www.youtube.com/watch?v=g_f5m00_2NM" target="_blank" rel="noopener noreferrer" class="group flex items-center justify-center gap-3 w-full bg-[var(--primary-light)] p-4 sm:p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border-2 border-transparent hover:border-[var(--primary-dark)]">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-red-600 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M10,15L15.19,12L10,9V15M21.56,7.17C21.69,7.64 21.78,8.27 21.84,9.08C21.91,9.87 21.94,10.56 21.94,11.16L22,12C22,14.19 21.84,15.8 21.56,16.83C21.31,17.73 20.73,18.31 19.83,18.56C19.36,18.69 18.73,18.78 17.92,18.84C17.13,18.91 16.44,18.94 15.84,18.94L12,19C9.81,19 8.2,18.84 7.17,18.56C6.27,18.31 5.69,17.73 5.44,16.83C5.31,16.36 5.22,15.73 5.16,14.92C5.09,14.13 5.06,13.44 5.06,12.84L5,12C5,9.81 5.16,8.2 5.44,7.17C5.69,6.27 6.27,5.69 7.17,5.44C7.64,5.31 8.27,5.22 9.08,5.16C9.87,5.09 10.56,5.06 11.16,5.06L12,5C14.19,5 15.8,5.16 16.83,5.44C17.73,5.69 18.31,6.27 18.56,7.17C18.69,7.64 18.78,8.27 18.84,9.08C18.91,9.87 18.94,10.56 18.94,11.16L19,12C19,14.19 18.84,15.8 18.56,16.83C18.31,17.73 17.73,18.31 16.83,18.56C16.36,18.69 15.73,18.78 14.92,18.84C14.13,18.91 13.44,18.94 12.84,18.94L12,19C9.81,19 8.2,18.84 7.17,18.56C6.27,18.31 5.69,17.73 5.44,16.83C5.31,16.36 5.22,15.73 5.16,14.92C5.09,14.13 5.06,13.44 5.06,12.84L5,12C5,9.81 5.16,8.2 5.44,7.17C5.69,6.27 6.27,5.69 7.17,5.44C7.64,5.31 8.27,5.22 9.08,5.16C9.87,5.09 10.56,5.06 11.16,5.06L12,5C14.19,5 15.8,5.16 16.83,5.44C17.73,5.69 18.31,6.27 18.56,7.17Z" />
+                </svg>
+                <div class="text-left">
+                    <h2 class="text-lg font-semibold text-[var(--primary-dark)]">Watch the Original Video</h2>
+                    <p class="text-[var(--secondary-dark)]">Click here to view the source video on YouTube.</p>
+                </div>
+            </a>
+        </section>
+
+        <div class="bg-[var(--secondary-light)] p-1.5 rounded-xl flex space-x-2 mb-6">
+            <button id="report-tab" class="tab-active w-1/2 py-3 rounded-lg font-semibold transition-all duration-300">Educational Report</button>
+            <button id="quiz-tab" class="tab-inactive w-1/2 py-3 rounded-lg font-semibold transition-all duration-300">Interactive Quiz</button>
+        </div>
+
+        <main class="bg-[var(--primary-light)] p-6 sm:p-8 rounded-xl shadow-lg min-h-[400px]">
+            <div id="report-content" class="prose-custom max-w-none">
+                <h2>Educational Content Report: Understanding HTTPS and TLS</h2>
+                <h3>Main Topic:</h3>
+                <p>This video explains the fundamental concepts of HTTPS (Hypertext Transfer Protocol Secure), its importance for secure internet communication, and the underlying mechanism of the TLS (Transport Layer Security) handshake.</p>
+                
+                <h3>Educational Content Summary:</h3>
+                <h4><strong>1. The Necessity of HTTPS:</strong></h4>
+                <p>The video begins by highlighting the critical need for HTTPS. It explains that without HTTPS, data exchanged between a browser and a server (like passwords or credit card numbers) is sent in plain text, making it vulnerable to interception and reading by unauthorized parties. HTTPS is presented as the solution to this problem, ensuring data privacy and integrity.</p>
+                
+                <h4><strong>2. HTTPS and Transport Layer Security (TLS):</strong></h4>
+                <p>HTTPS is introduced as an extension of the HTTP protocol. The core mechanism behind HTTPS's security is TLS, which encrypts data, rendering it unreadable ("jumbo data") if intercepted by a hacker.</p>
+                
+                <h4><strong>3. The TLS Handshake Explained (TLS 1.2 Model):</strong></h4>
+                <p>The video details the four main steps of the TLS handshake, a process that establishes a secure communication channel:</p>
+                <ul>
+                    <li><strong>Step 1: TCP Connection Establishment:</strong> The browser initiates a standard TCP connection with the server, similar to HTTP.</li>
+                    <li><strong>Step 2: Hello Phase:</strong>
+                        <ul>
+                            <li>The browser sends a <code>client hello</code> message, indicating its supported TLS versions (e.g., TLS 1.2, 1.3) and cipher suites (sets of encryption algorithms).</li>
+                            <li>The server responds with a <code>server hello</code>, selecting a TLS version and cipher suite from the client's options.</li>
+                            <li>The server then sends its digital certificate, which notably contains its public key.</li>
+                            <li>Introduction to <strong>asymmetric encryption</strong>: data encrypted with a public key can only be decrypted by the corresponding private key.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Step 3: Shared Encryption Key Exchange:</strong>
+                        <ul>
+                            <li>The client generates a symmetric "session key" (the actual key for encrypting data during the session).</li>
+                            <li>Using the server's public key (from the certificate), the client encrypts this session key (using asymmetric encryption, with RSA as an example).</li>
+                            <li>The encrypted session key is sent to the server in a <code>client key exchange</code> message.</li>
+                            <li>The server uses its private key to decrypt and retrieve the session key. Now, both client and server possess the same shared secret session key.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Step 4: Secure Data Transmission:</strong>
+                        <ul>
+                            <li>With the shared session key and the agreed-upon cipher suite, both client and server can now encrypt and decrypt data using symmetric encryption, establishing a secure, bidirectional communication channel.</li>
+                        </ul>
+                    </li>
+                </ul>
+                
+                <h4><strong>4. Rationale for Symmetric vs. Asymmetric Encryption:</strong></h4>
+                <p>The video clarifies why symmetric encryption is used for ongoing data transmission after the handshake. Asymmetric encryption, while crucial for secure key exchange, is computationally expensive and therefore unsuitable for bulk data transfer. Symmetric encryption, being more efficient, is used for the main communication.</p>
+                
+                <h4><strong>5. Finer Points and Modern Context:</strong></h4>
+                <ul>
+                    <li><strong>TLS 1.3 Improvements:</strong> The video notes that while TLS 1.2 was used for explanation, TLS 1.3 is the latest version. A key improvement in TLS 1.3 is the optimization of the handshake to a single network round trip, reducing latency compared to TLS 1.2's two round trips. The core concepts, however, remain similar.</li>
+                    <li><strong>Alternative Key Exchange Methods:</strong> The explanation used RSA for asymmetric key exchange due to its simplicity. However, the video points out that RSA is no longer supported for key exchange in TLS 1.3. Diffie-Hellman is introduced as a more common and advanced method, which derives a shared session key without directly transmitting a public key over the network.</li>
+                </ul>
+                
+                <h3>Key Learning Points:</h3>
+                <ul>
+                    <li>HTTPS encrypts internet communication to protect sensitive data (passwords, credit card numbers) from eavesdropping.</li>
+                    <li>TLS (Transport Layer Security) is the protocol that provides encryption for HTTPS.</li>
+                    <li>The TLS handshake is a multi-step process for establishing a secure connection between a browser (client) and a server.</li>
+                    <li>The handshake involves the client and server agreeing on encryption parameters (TLS version, cipher suite) and the secure exchange of a shared secret key.</li>
+                    <li><strong>Asymmetric encryption</strong> (using public and private keys) is used initially to securely transmit a symmetric session key.</li>
+                    <li><strong>Symmetric encryption</strong> (using a shared session key) is then used for efficient bulk data transfer during the session.</li>
+                    <li>The server's digital certificate contains its public key, which the client uses for initial encryption during key exchange.</li>
+                    <li>TLS 1.3 optimizes the handshake process, reducing network round trips compared to TLS 1.2.</li>
+                    <li>Various cryptographic methods exist for secure key exchange, such as RSA (demonstrated for simplicity) and Diffie-Hellman (more common and secure in modern TLS).</li>
+                </ul>
+                
+                <h3>Educational Relevance:</h3>
+                <p>This video provides a highly relevant and clear explanation of a fundamental internet security technology. The breakdown of the TLS handshake into distinct, easy-to-follow steps, coupled with clear distinctions between symmetric and asymmetric encryption and their respective roles, makes complex concepts accessible. The acknowledgment of newer versions (TLS 1.3) and alternative methods (Diffie-Hellman) adds depth and contextualizes the information for learners, preparing them for more advanced studies. The content is suitable for anyone seeking to understand how secure internet communication works.</p>
+            </div>
+
+            <div id="quiz-content" class="hidden">
+                <div id="quiz-container">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-[var(--primary-dark)]">Knowledge Check</h2>
+                        <p id="question-counter" class="text-sm font-medium text-[var(--secondary-dark)] bg-[var(--secondary-light)] px-3 py-1 rounded-full"></p>
+                    </div>
+                    <p id="question-text" class="text-lg font-semibold text-[var(--secondary-dark)] mb-6 min-h-[56px]"></p>
+                    <div id="options-container" class="space-y-3"></div>
+                    <div id="feedback-container" class="mt-4 min-h-[24px] text-center font-medium"></div>
+                    <div class="mt-6 text-center">
+                        <button id="next-btn" class="hidden bg-[var(--primary-dark)] text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-[var(--secondary-dark)] transition-colors duration-300">Next Question</button>
+                    </div>
+                </div>
+                <div id="results-container" class="hidden text-center">
+                    <h2 class="text-2xl font-bold text-[var(--primary-dark)] mb-4">Quiz Complete!</h2>
+                    <p class="text-lg text-[var(--secondary-dark)] mb-2">Your score:</p>
+                    <p id="score-text" class="text-5xl font-bold text-[var(--primary-dark)] mb-8"></p>
+                    <p id="score-message" class="text-md text-[var(--secondary-dark)] mb-8"></p>
+                    <button id="restart-btn" class="bg-[var(--primary-dark)] text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-[var(--secondary-dark)] transition-colors duration-300">Restart Quiz</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const quizData = [
+            {
+                question: "What is the primary problem that HTTPS is designed to solve in internet communication?",
+                options: [
+                    "To make websites load faster by compressing data.",
+                    "To prevent denial-of-service attacks on servers.",
+                    "To ensure that data sent between a browser and a server is unreadable by unauthorized interceptors.",
+                    "To standardize website design across different browsers."
+                ],
+                correctAnswer: 2
+            },
+            {
+                question: "Which protocol is primarily responsible for encrypting data sent over an HTTPS connection?",
+                options: [
+                    "HTTP (Hypertext Transfer Protocol)",
+                    "TCP (Transmission Control Protocol)",
+                    "TLS (Transport Layer Security)",
+                    "IP (Internet Protocol)"
+                ],
+                correctAnswer: 2
+            },
+            {
+                question: "During the TLS handshake, what is the main purpose of the 'hello phase' (Step 2)?",
+                options: [
+                    "To establish a direct peer-to-peer connection between client and server.",
+                    "To agree on the TLS version, cipher suite, and for the server to send its certificate.",
+                    "To immediately begin encrypted data transmission using a pre-shared key.",
+                    "To authenticate the user's login credentials."
+                ],
+                correctAnswer: 1
+            },
+            {
+                question: "Why is asymmetric encryption used during the initial phase of the TLS handshake to exchange the session key?",
+                options: [
+                    "It is computationally efficient for bulk data transfer.",
+                    "It prevents the client from generating its own session key.",
+                    "It allows the secure transmission of the symmetric session key over an unsecured network.",
+                    "It authenticates the client's identity using a private key."
+                ],
+                correctAnswer: 2
+            },
+            {
+                question: "After the session key is securely exchanged, why do both client and server switch to symmetric encryption for data transmission?",
+                options: [
+                    "Symmetric encryption provides stronger security than asymmetric encryption.",
+                    "Asymmetric encryption is too computationally expensive for bulk data transfer.",
+                    "Symmetric encryption allows for larger data packets to be sent.",
+                    "It's a regulatory requirement for all internet traffic."
+                ],
+                correctAnswer: 1
+            },
+            {
+                question: "What crucial piece of information does the server's certificate contain that the client uses during the TLS handshake?",
+                options: [
+                    "The server's private key.",
+                    "The agreed-upon cipher suite.",
+                    "The server's public key.",
+                    "The client's IP address."
+                ],
+                correctAnswer: 2
+            },
+            {
+                question: "What is a key improvement of TLS 1.3 compared to TLS 1.2 regarding the handshake process?",
+                options: [
+                    "TLS 1.3 completely removes the need for a session key.",
+                    "TLS 1.3 uses a simpler mathematical algorithm for encryption.",
+                    "TLS 1.3 optimizes the handshake to reduce network round trips to one.",
+                    "TLS 1.3 supports RSA for key exchange, which TLS 1.2 does not."
+                ],
+                correctAnswer: 2
+            },
+            {
+                question: "While RSA was used as an example, what is a more common and secure method for exchanging session keys in modern TLS?",
+                options: [
+                    "AES (Advanced Encryption Standard)",
+                    "Diffie-Hellman",
+                    "SHA-256 (Secure Hash Algorithm 256)",
+                    "MD5 (Message-Digest Algorithm 5)"
+                ],
+                correctAnswer: 1
+            }
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const reportTab = document.getElementById('report-tab');
+            const quizTab = document.getElementById('quiz-tab');
+            const reportContent = document.getElementById('report-content');
+            const quizContent = document.getElementById('quiz-content');
+
+            const quizContainer = document.getElementById('quiz-container');
+            const resultsContainer = document.getElementById('results-container');
+            const questionCounter = document.getElementById('question-counter');
+            const questionText = document.getElementById('question-text');
+            const optionsContainer = document.getElementById('options-container');
+            const feedbackContainer = document.getElementById('feedback-container');
+            const nextBtn = document.getElementById('next-btn');
+            const restartBtn = document.getElementById('restart-btn');
+            const scoreText = document.getElementById('score-text');
+            const scoreMessage = document.getElementById('score-message');
+
+            let currentQuestionIndex = 0;
+            let score = 0;
+            let answered = false;
+
+            function switchTab(activeTab) {
+                if (activeTab === 'quiz') {
+                    quizTab.classList.replace('tab-inactive', 'tab-active');
+                    reportTab.classList.replace('tab-active', 'tab-inactive');
+                    quizContent.classList.remove('hidden');
+                    reportContent.classList.add('hidden');
+                } else {
+                    reportTab.classList.replace('tab-inactive', 'tab-active');
+                    quizTab.classList.replace('tab-active', 'tab-inactive');
+                    reportContent.classList.remove('hidden');
+                    quizContent.classList.add('hidden');
+                }
+            }
+
+            reportTab.addEventListener('click', () => switchTab('report'));
+            quizTab.addEventListener('click', () => switchTab('quiz'));
+
+            function loadQuestion() {
+                answered = false;
+                feedbackContainer.innerHTML = '';
+                nextBtn.classList.add('hidden');
+                const currentQuestion = quizData[currentQuestionIndex];
+                questionCounter.textContent = `Question ${currentQuestionIndex + 1}/${quizData.length}`;
+                questionText.textContent = currentQuestion.question;
+                optionsContainer.innerHTML = '';
+
+                currentQuestion.options.forEach((option, index) => {
+                    const button = document.createElement('button');
+                    button.innerHTML = `<span class="mr-3 font-bold">${String.fromCharCode(65 + index)}.</span> ${option}`;
+                    button.classList.add('quiz-option', 'w-full', 'text-left', 'p-4', 'rounded-lg', 'font-medium', 'bg-[var(--primary-light)]');
+                    button.dataset.index = index;
+                    button.addEventListener('click', selectAnswer);
+                    optionsContainer.appendChild(button);
+                });
+            }
+
+            function selectAnswer(e) {
+                if (answered) return;
+                answered = true;
+
+                const selectedButton = e.currentTarget;
+                const selectedIndex = parseInt(selectedButton.dataset.index);
+                const correctIndex = quizData[currentQuestionIndex].correctAnswer;
+
+                Array.from(optionsContainer.children).forEach((button, index) => {
+                    button.classList.add('disabled');
+                    if (index === correctIndex) {
+                        button.classList.add('correct');
+                    }
+                });
+
+                if (selectedIndex === correctIndex) {
+                    score++;
+                    selectedButton.classList.add('correct');
+                    feedbackContainer.textContent = 'Correct!';
+                    feedbackContainer.style.color = 'var(--success)';
+                } else {
+                    selectedButton.classList.add('incorrect');
+                    feedbackContainer.textContent = 'Incorrect. The correct answer is highlighted.';
+                    feedbackContainer.style.color = 'var(--error)';
+                }
+                
+                selectedButton.classList.add('selected');
+                nextBtn.classList.remove('hidden');
+                if (currentQuestionIndex === quizData.length - 1) {
+                    nextBtn.textContent = 'Show Results';
+                }
+            }
+
+            function showResults() {
+                quizContainer.classList.add('hidden');
+                resultsContainer.classList.remove('hidden');
+                scoreText.textContent = `${score} / ${quizData.length}`;
+                
+                const percentage = (score / quizData.length) * 100;
+                if (percentage === 100) {
+                    scoreMessage.textContent = "Perfect score! You're an expert on HTTPS and TLS.";
+                } else if (percentage >= 75) {
+                    scoreMessage.textContent = "Great job! You have a strong understanding of the topic.";
+                } else if (percentage >= 50) {
+                    scoreMessage.textContent = "Good effort! A quick review of the report might help solidify the concepts.";
+                } else {
+                    scoreMessage.textContent = "Don't worry! Learning is a process. Try reviewing the report and taking the quiz again.";
+                }
+            }
+
+            nextBtn.addEventListener('click', () => {
+                currentQuestionIndex++;
+                if (currentQuestionIndex < quizData.length) {
+                    loadQuestion();
+                } else {
+                    showResults();
+                }
+            });
+
+            restartBtn.addEventListener('click', () => {
+                currentQuestionIndex = 0;
+                score = 0;
+                nextBtn.textContent = 'Next Question';
+                resultsContainer.classList.add('hidden');
+                quizContainer.classList.remove('hidden');
+                loadQuestion();
+            });
+
+            loadQuestion();
+        });
+    </script>
+
+</body>
+</html>
